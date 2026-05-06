@@ -24,9 +24,15 @@ pip install -r "%USERPROFILE%\.claude\skills\batch-paper-summary\scripts\require
 
 ### Step 0: Search Papers (Optional)
 
-```bash
+```python
 # Simple search
 python scripts/search_papers.py --query "metal spinning deep operator network"
+
+# Only Q1/Q2 journals
+python scripts/search_papers.py --query "neural operator metal forming" --top-journals
+
+# Top journals + high-impact filter
+python scripts/search_papers.py --query "surrogate model manufacturing" --top-journals --min-citations 10
 
 # Save results as Markdown table
 python scripts/search_papers.py --query "deep operator network metal forming" --limit 30 --output search_results.md

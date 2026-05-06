@@ -23,7 +23,9 @@ Search for papers by keyword using the Semantic Scholar API:
 
 ```bash
 python scripts/search_papers.py \
-  --query "metal spinning process deep operator network" \
+  --query "neural operator mechanical engineering" \
+  --top-journals \
+  --min-citations 5 \
   --limit 20 \
   --output papers_search_results.md
 ```

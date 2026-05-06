@@ -172,6 +172,70 @@ def generate_json_output(papers: list[dict]) -> str:
     return json.dumps(clean, ensure_ascii=False, indent=2)
 
 
+TOP_JOURNALS = [
+    # Computational Mechanics / Numerical Methods (Q1)
+    "Computer Methods in Applied Mechanics and Engineering",
+    "Journal of Computational Physics",
+    "Computational Mechanics",
+    "International Journal for Numerical Methods in Engineering",
+    "Computers and Structures",
+    "Finite Elements in Analysis and Design",
+    "Archives of Computational Methods in Engineering",
+    "Engineering with Computers",
+    # Solid Mechanics / Manufacturing (Q1/Q2)
+    "International Journal of Mechanical Sciences",
+    "International Journal of Plasticity",
+    "Journal of Materials Processing Technology",
+    "Journal of Manufacturing Processes",
+    "International Journal of Machine Tools and Manufacture",
+    "Mechanical Systems and Signal Processing",
+    "Journal of Manufacturing Systems",
+    "Journal of Applied Mechanics",
+    "International Journal of Solids and Structures",
+    "Thin-Walled Structures",
+    "Materials and Design",
+    "Materials Science and Engineering: A",
+    "CIRP Annals",
+    "CIRP Journal of Manufacturing Science and Technology",
+    # ML / AI Applied to Engineering (Q1)
+    "Engineering Applications of Artificial Intelligence",
+    "Applied Soft Computing",
+    "Expert Systems with Applications",
+    "Neurocomputing",
+    "IEEE Transactions on Neural Networks and Learning Systems",
+    "Machine Learning: Science and Technology",
+    "Structural and Multidisciplinary Optimization",
+    # General Engineering (Q1)
+    "Applied Mathematical Modelling",
+    "Engineering Fracture Mechanics",
+    "Composites Part B: Engineering",
+    "Composites Science and Technology",
+]
+
+
+def filter_top_journals(papers: list[dict]) -> list[dict]:
+    """Keep only papers published in known Q1/Q2 journals."""
+    return [p for p in papers if (p.get("venue") or "").strip() in TOP_JOURNALS]
+
+
+def filter_min_citations(papers: list[dict], min_cites: int) -> list[dict]:
+    """Keep only papers with at least min_cites citations."""
+    return [p for p in papers if (p.get("citationCount") or 0) >= min_cites]
+
+
+def build_summary(papers, args) -> str:
+    parts = [f"Found {len(papers)} papers"]
+    if args.top_journals:
+        parts.append("top-journals filtered")
+    if args.min_citations:
+        parts.append(f"min {args.min_citations} citations")
+    with_arxiv = sum(1 for p in papers if extract_id(p.get("externalIds"), "ArXiv"))
+    with_doi = sum(1 for p in papers if extract_id(p.get("externalIds"), "DOI"))
+    total_cites = sum(p.get("citationCount", 0) or 0 for p in papers)
+    parts.append(f"{with_arxiv} with arXiv | {with_doi} with DOI | {total_cites} total citations")
+    return " | ".join(parts)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="batch-paper-summary: Search academic papers by keyword",
@@ -179,10 +243,15 @@ def main():
         epilog="""
 Examples:
   python search_papers.py --query "metal spinning neural operator"
-  python search_papers.py --query "deep operator network metal forming" --limit 30
+
+  # Top journals only
+  python search_papers.py --query "deep operator network metal forming" --top-journals
+
+  # Top journals + minimum citations
+  python search_papers.py --query "surrogate model forming" --top-journals --min-citations 10
+
+  # Multi-keyword
   python search_papers.py --query "metal spinning; deep operator network" --output results.md
-  python search_papers.py --query "旋压工艺 机器学习" --limit 15
-  python search_papers.py --related <paper_id> --limit 10
         """,
     )
     parser.add_argument("-q", "--query", help="Search keyword(s). Use ';' to separate multiple queries (merged & deduplicated)")
@@ -191,6 +260,8 @@ Examples:
     parser.add_argument("-o", "--output", help="Save results to Markdown file")
     parser.add_argument("--json", action="store_true", help="Output as JSON instead of Markdown")
     parser.add_argument("--offset", type=int, default=0, help="Pagination offset")
+    parser.add_argument("--top-journals", action="store_true", help="Filter to known Q1/Q2 journals only")
+    parser.add_argument("--min-citations", type=int, default=0, help="Minimum citation count filter")
 
     args = parser.parse_args()
 
@@ -201,29 +272,48 @@ Examples:
 
     print(f"[INFO] Searching...")
 
+    # Fetch more if filtering, to have enough results after filtering
+    effective_limit = int(args.limit * 3) if args.top_journals else args.limit
+
     papers = []
     if args.related:
         query_desc = f"Related to paper {args.related}"
-        papers = get_related_papers(args.related, args.limit)
+        papers = get_related_papers(args.related, effective_limit)
     else:
         query_desc = args.query
         if ";" in args.query:
             keywords = [k.strip() for k in args.query.split(";") if k.strip()]
-            papers = search_multiple_keywords(keywords, args.limit)
+            papers = search_multiple_keywords(keywords, effective_limit)
         else:
-            papers = search_papers(args.query, args.limit)
+            papers = search_papers(args.query, effective_limit)
 
-    print(f"[INFO] Found {len(papers)} papers")
+    # Apply filters
+    if args.min_citations > 0:
+        papers = filter_min_citations(papers, args.min_citations)
+    if args.top_journals:
+        papers = filter_top_journals(papers)
+
+    papers = papers[:args.limit]
+
+    print(f"[INFO] {build_summary(papers, args)}")
 
     if not papers:
-        print("[INFO] No results.")
+        print("[INFO] No results matching criteria.")
         return
 
     # Output
     if args.json:
         output = generate_json_output(papers)
     else:
-        output = generate_markdown_table(papers, title=f"Search: {query_desc}")
+        title = query_desc
+        if args.top_journals or args.min_citations:
+            filters = []
+            if args.top_journals:
+                filters.append("top-journals")
+            if args.min_citations:
+                filters.append(f"min-cites={args.min_citations}")
+            title += f" [{', '.join(filters)}]"
+        output = generate_markdown_table(papers, title=f"Search: {title}")
 
     if args.output:
         out_path = Path(args.output)
@@ -232,12 +322,6 @@ Examples:
         print(f"[INFO] Saved to {out_path}")
     else:
         print(output)
-
-    # Stats
-    with_arxiv = sum(1 for p in papers if extract_id(p.get("externalIds"), "ArXiv"))
-    with_doi = sum(1 for p in papers if extract_id(p.get("externalIds"), "DOI"))
-    total_cites = sum(p.get("citationCount", 0) or 0 for p in papers)
-    print(f"\n[INFO] Stats: {with_arxiv} with arXiv, {with_doi} with DOI, {total_cites} total citations")
 
 
 if __name__ == "__main__":
