@@ -34,7 +34,7 @@ except ImportError:
     sys.exit(1)
 
 
-API_BASE = "https://api.semanticscholar.org/graph/v1"
+DEFAULT_OUTPUT_DIR = Path("D:/Obsidian/file_storage/Abaqus/文献阅读整理/神经算子/搜索记录")
 SEARCH_URL = f"{API_BASE}/paper/search"
 RECOMMEND_URL = f"{API_BASE}/recommendations"
 BATCH_URL = f"{API_BASE}/paper/batch"
@@ -317,11 +317,14 @@ Examples:
 
     if args.output:
         out_path = Path(args.output)
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(output, encoding="utf-8")
-        print(f"[INFO] Saved to {out_path}")
     else:
-        print(output)
+        now = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_query = query_desc[:40].strip().replace(" ", "_").replace("/", "_")
+        out_path = DEFAULT_OUTPUT_DIR / f"{now}_{safe_query}.md"
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(output, encoding="utf-8")
+    print(f"[INFO] Saved to {out_path}")
 
 
 if __name__ == "__main__":
