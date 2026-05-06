@@ -34,6 +34,7 @@ except ImportError:
     sys.exit(1)
 
 
+API_BASE = "https://api.semanticscholar.org/graph/v1"
 DEFAULT_OUTPUT_DIR = Path("D:/Obsidian/file_storage/Abaqus/文献阅读整理/神经算子/搜索记录")
 SEARCH_URL = f"{API_BASE}/paper/search"
 RECOMMEND_URL = f"{API_BASE}/recommendations"
@@ -42,18 +43,33 @@ BATCH_URL = f"{API_BASE}/paper/batch"
 FIELDS = "title,authors,year,abstract,externalIds,url,citationCount,venue,publicationDate"
 
 
-def search_papers(query: str, limit: int = 20, offset: int = 0) -> list[dict]:
-    """Search Semantic Scholar by keyword."""
+def search_papers(query: str, limit: int = 20, offset: int = 0, max_retries: int = 3) -> list[dict]:
+    """Search Semantic Scholar by keyword, with retry logic for rate limits."""
     params = {
         "query": query,
         "limit": min(limit, 100),
         "offset": offset,
         "fields": FIELDS,
     }
-    resp = requests.get(SEARCH_URL, params=params, timeout=30)
-    resp.raise_for_status()
-    data = resp.json()
-    return data.get("data", [])
+
+    for attempt in range(max_retries):
+        try:
+            time.sleep(1.0)
+            resp = requests.get(SEARCH_URL, params=params, timeout=30)
+            if resp.status_code == 429:
+                wait = 5 * (attempt + 1)
+                print(f"  [RETRY] Rate limited, waiting {wait}s (attempt {attempt+1}/{max_retries})")
+                time.sleep(wait)
+                continue
+            resp.raise_for_status()
+            data = resp.json()
+            return data.get("data", [])
+        except requests.exceptions.HTTPError as e:
+            if attempt == max_retries - 1:
+                raise
+            print(f"  [RETRY] HTTP error, retrying ({attempt+1}/{max_retries})")
+            time.sleep(3)
+    return []
 
 
 def search_multiple_keywords(queries: list[str], limit: int = 20) -> list[dict]:
@@ -75,7 +91,7 @@ def search_multiple_keywords(queries: list[str], limit: int = 20) -> list[dict]:
                     all_papers.append(p)
         except Exception as e:
             print(f"  [WARN] Query '{q}' failed: {e}")
-        time.sleep(1)  # rate limit
+        time.sleep(1.5)  # rate limit
 
     return all_papers[:limit]
 
@@ -273,7 +289,7 @@ Examples:
     print(f"[INFO] Searching...")
 
     # Fetch more if filtering, to have enough results after filtering
-    effective_limit = int(args.limit * 3) if args.top_journals else args.limit
+    effective_limit = int(args.limit * 2) if args.top_journals else args.limit
 
     papers = []
     if args.related:
