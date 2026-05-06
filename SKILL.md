@@ -1,8 +1,8 @@
 ---
 name: batch-paper-summary
-description: "Batch read PDF academic papers and generate structured Chinese fast-reading summary reports. 7-section report template (Executive Summary, Research Question, Methodology, Key Findings, Relevance Assessment, Innovations & Limitations, Reading Recommendation). Outputs to Obsidian vault. Triggers: 批量阅读文献, 论文摘要, 快速阅读报告, batch paper summary, paper digest, 文献总结."
+description: "Batch read PDF academic papers and generate structured Chinese fast-reading summary reports. Includes literature search (Semantic Scholar API), batch PDF extraction, relevance ranking, and 7-section report template (Executive Summary, Research Question, Methodology, Key Findings, Relevance Assessment, Innovations & Limitations, Reading Recommendation). Outputs to Obsidian vault. Triggers: 批量阅读文献, 论文摘要, 快速阅读报告, batch paper summary, paper digest, 文献总结, 文献检索, paper search, 关键词搜索."
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
   last_updated: "2026-05-06"
   status: active
   task_type: batch
@@ -16,6 +16,21 @@ metadata:
 Batch-read PDF academic papers and generate structured Chinese fast-reading summary reports, output to Obsidian vault.
 
 ## Workflow
+
+### Phase 0: Literature Search (Optional)
+
+Search for papers by keyword using the Semantic Scholar API:
+
+```bash
+python scripts/search_papers.py \
+  --query "metal spinning process deep operator network" \
+  --limit 20 \
+  --output papers_search_results.md
+```
+
+The script returns: title, authors, year, abstract, arXiv ID, DOI, URL, citation count. Results can be saved as a Markdown table for easy browsing.
+
+**Then**: Use the returned DOI/arXiv links to download PDFs, and feed them into Phase 1.
 
 ### Phase 1: Preprocessing (User executes once)
 

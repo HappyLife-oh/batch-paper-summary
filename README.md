@@ -1,25 +1,42 @@
 # batch-paper-summary
 
-Batch-read PDF academic papers and generate structured Chinese fast-reading summary reports for Obsidian.
+Batch-read PDF academic papers and generate structured Chinese fast-reading summary reports for Obsidian. Includes literature search via Semantic Scholar API.
 
 ## What It Does
 
-1. **Extracts** text, tables, and embedded images from all PDFs in a directory
-2. **Ranks** papers by relevance to your research direction
-3. **Generates** a 7-section structured Chinese summary for each paper
-4. **Outputs** markdown files to your Obsidian vault, with a master index and cross-paper synthesis
+1. **Searches** papers by keyword using Semantic Scholar API
+2. **Extracts** text, tables, and embedded images from all PDFs in a directory
+3. **Ranks** papers by relevance to your research direction
+4. **Generates** a 7-section structured Chinese summary for each paper
+5. **Outputs** markdown files to your Obsidian vault, with a master index and cross-paper synthesis
 
 ## Installation
 
 ```bash
 # Clone to Claude Code skills directory
-git clone https://github.com/<your-username>/batch-paper-summary.git "%USERPROFILE%\.claude\skills\batch-paper-summary"
+git clone https://github.com/HappyLife-oh/batch-paper-summary.git "%USERPROFILE%\.claude\skills\batch-paper-summary"
 
 # Install Python dependencies
 pip install -r "%USERPROFILE%\.claude\skills\batch-paper-summary\scripts\requirements.txt"
 ```
 
 ## Quick Start
+
+### Step 0: Search Papers (Optional)
+
+```bash
+# Simple search
+python scripts/search_papers.py --query "metal spinning deep operator network"
+
+# Save results as Markdown table
+python scripts/search_papers.py --query "deep operator network metal forming" --limit 30 --output search_results.md
+
+# Multiple keywords (merged & deduplicated)
+python scripts/search_papers.py --query "metal spinning; neural operator; process parameter prediction"
+
+# Chinese keywords work too
+python scripts/search_papers.py --query "旋压工艺 机器学习 工艺参数"
+```
 
 ### Step 1: Extract PDFs
 
