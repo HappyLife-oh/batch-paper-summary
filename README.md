@@ -54,11 +54,17 @@ The skill auto-triggers and follows the report template.
 
 ```
 <obsidian_vault>/
-├── 00_总览索引.md         # Master index with relevance ranking
-├── 01_<PaperName>.md       # Individual summary
-├── 02_<PaperName>.md
-├── ...
-└── 99_总结与推荐.md         # Cross-paper synthesis & recommendations
+├── 00_总览索引.md           # Master index with relevance ranking (wikilinks to subdirs)
+├── 99_总结与推荐.md         # Cross-paper synthesis & recommendations
+├── 高相关/
+│   ├── 01_<PaperName>.md    # Full 7-section report
+│   └── ...
+├── 中相关/
+│   ├── 01_<PaperName>.md    # Full 7-section report
+│   └── ...
+└── 低相关/
+    ├── 01_<PaperName>.md    # Condensed 4-section report
+    └── ...
 ```
 
 ## Dependencies
