@@ -54,7 +54,7 @@ def search_papers(query: str, limit: int = 20, offset: int = 0, max_retries: int
 
     for attempt in range(max_retries):
         try:
-            time.sleep(1.0)
+            time.sleep(2.5)  # Conservative rate limit (1 req / 2.5s)
             resp = requests.get(SEARCH_URL, params=params, timeout=30)
             if resp.status_code == 429:
                 wait = 5 * (attempt + 1)
@@ -91,7 +91,7 @@ def search_multiple_keywords(queries: list[str], limit: int = 20) -> list[dict]:
                     all_papers.append(p)
         except Exception as e:
             print(f"  [WARN] Query '{q}' failed: {e}")
-        time.sleep(1.5)  # rate limit
+        time.sleep(3.0)  # Conservative: 3s between multi-keyword queries
 
     return all_papers[:limit]
 
